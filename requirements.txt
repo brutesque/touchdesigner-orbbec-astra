@@ -1,0 +1,5 @@
+wheel==0.36.2
+numpy==1.20.3
+open3d==0.13.0
+opencv-python==4.5.2.54
+primesense==2.2.0.30.post5
