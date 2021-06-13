@@ -189,9 +189,6 @@ def onPulse(par):
     return
 
 
-last_params = dict()
-
-
 def get_param_values(scriptOp):
     result = dict()
 
@@ -209,6 +206,9 @@ def set_param_values(scriptOp, param_values):
 
     global last_params
     last_params = param_values
+
+
+last_params = dict()
 
 
 def detect_param_change(scriptOp):
