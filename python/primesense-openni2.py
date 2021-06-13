@@ -2,13 +2,15 @@
 import os
 import sys
 from collections import OrderedDict
-
 from ctypes import c_char
+
+import numpy
 
 sys.path.append(os.path.join('venv', 'Lib', 'site-packages'))
 
 from primesense import openni2
 from primesense._openni2 import ONI_DEVICE_PROPERTY_SERIAL_NUMBER
+from primesense._openni2 import OniPixelFormat
 
 
 class Device(openni2.Device):
@@ -422,7 +424,71 @@ def onPulse(par):
     return
 
 
+class StreamHandler:
+    active = False
+    stream = None
+    image = None
+
+    def __init__(self):
+        pass
+
+    def set_state(self, active, device_label, sensor_type_label, fps_label, resolution_label, pixelformat_label,
+                  mirrorimage):
+        if self.stream is not None:
+            self.active = False
+            self.stream.unregister_new_frame_listener(self.frame_callback)
+            self.stream.stop()
+
+        if active:
+            if device_label and sensor_type_label:
+                device = devices.connected[device_label]
+                sensor_type = device._sensor_type_map[sensor_type_label]
+            if self.stream is None:
+                self.stream = device.create_stream(sensor_type=sensor_type)
+
+            video_mode = device.video_modes[sensor_type_label][fps_label][resolution_label][pixelformat_label]
+            self.stream.set_video_mode(video_mode)
+            self.stream.set_mirroring_enabled(mirrorimage)
+
+            self.stream.start()
+            self.stream.register_new_frame_listener(self.frame_callback)
+
+            self.active = True
+
+        return
+
+    def frame_callback(self, stream):
+        self.image = self.get_frame(stream)
+
+    @staticmethod
+    def get_frame(stream):
+        if stream:
+            frame = stream.read_frame()
+            if frame.videoMode.pixelFormat in [OniPixelFormat.ONI_PIXEL_FORMAT_RGB888,
+                                               OniPixelFormat.ONI_PIXEL_FORMAT_YUV422]:
+                buffer = frame.get_buffer_as_uint8()
+                dtype = numpy.uint8()
+                channels = 3
+            if frame.videoMode.pixelFormat in [OniPixelFormat.ONI_PIXEL_FORMAT_GRAY8]:
+                buffer = frame.get_buffer_as_uint8()
+                dtype = numpy.uint8()
+                channels = 1
+            elif frame.videoMode.pixelFormat in [OniPixelFormat.ONI_PIXEL_FORMAT_GRAY16,
+                                                 OniPixelFormat.ONI_PIXEL_FORMAT_DEPTH_1_MM,
+                                                 OniPixelFormat.ONI_PIXEL_FORMAT_DEPTH_100_UM]:
+                buffer = frame.get_buffer_as_uint16()
+                dtype = numpy.uint16()
+                channels = 1
+
+            image = numpy.frombuffer(buffer, dtype=dtype)
+            image = image.reshape(frame.height, frame.width, channels)
+
+            return image
+
+
 def onCook(scriptOp):
+    global stream_handler
+
     if devices is None:
         initialize_devices(scriptOp)
 
@@ -434,6 +500,25 @@ def onCook(scriptOp):
         update_parameters(scriptOp)
         parameter_update_required = False
 
+        stream_handler.set_state(
+            active=scriptOp.par['Active'].val,
+            device_label=scriptOp.par['Sensor'].val,
+            sensor_type_label=scriptOp.par['Image'].val,
+            fps_label=scriptOp.par['Fps'].val,
+            resolution_label=scriptOp.par['Resolution'].val,
+            pixelformat_label=scriptOp.par['Pixelformat'].val,
+            mirrorimage=scriptOp.par['Mirrorimage'].val,
+        )
+
+    if stream_handler.active:
+        a = stream_handler.image
+        if a is not None:
+            scriptOp.copyNumpyArray(a)
+    else:
+        a = numpy.random.randint(0, high=255, size=(2, 2, 4), dtype='uint8')
+        a = numpy.zeros(shape=(2, 2, 4), dtype='uint8')
+        scriptOp.copyNumpyArray(a)
+
     return
 
 
@@ -442,6 +527,7 @@ if __name__ is not '__main__':
     devices = None
     parameter_update_required = False
     last_params = dict()
+    stream_handler = StreamHandler()
 
 # Executes in python console outside of TouchDesigner (for testing)
 if __name__ is '__main__':
