@@ -1,2 +1,2 @@
-# touchdesigner-orbbec-astra
- Orbbec3D Astra implementation for TouchDesigner Script Top
+# TouchDesigner Script TOP for Orbbec3D Astra
+ Orbbec3D Astra python implementation for TouchDesigner Script Top
