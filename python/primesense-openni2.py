@@ -181,6 +181,7 @@ class Devices:
 def onPulse(par):
     scriptOp = par.owner
     if par.name == 'Reload':
+        # openni2.initialize(dll_directories=scriptOp.par.Dlldirectory.val)
         devices.refresh()
 
         global parameter_update_required
@@ -218,8 +219,6 @@ def detect_param_change(scriptOp):
 
     if last_params and last_params != current_params:
         changed = True
-        print(last_params)
-        print(current_params)
 
     last_params = current_params
     return changed
@@ -229,11 +228,11 @@ def onCook(scriptOp):
     global parameter_update_required
 
     if detect_param_change(scriptOp):
-        print('onCook: params changed')
+        # print('onCook: params changed')
         parameter_update_required = True
 
     if parameter_update_required:
-        print('onCook: update required')
+        # print('onCook: update required')
         setup_parameters(scriptOp)
         parameter_update_required = False
 
@@ -302,15 +301,15 @@ def populate_menus(p, param_values):
 def par_data():
     return OrderedDict({
         'OpenNI2': OrderedDict([
-            ('Dlldirectory', OrderedDict([
-                ('page', 'OpenNI2'),
-                ('name', 'Dlldirectory'),
-                ('style', 'Folder'),
-                ('label', 'DLL Directory'),
-                ('default', 'Redist'),
-                ('startSection', False),
-                ('readOnly', False),
-            ])),
+            # ('Dlldirectory', OrderedDict([
+            #     ('page', 'OpenNI2'),
+            #     ('name', 'Dlldirectory'),
+            #     ('style', 'Folder'),
+            #     ('label', 'DLL Directory'),
+            #     ('default', 'Redist'),
+            #     ('startSection', False),
+            #     ('readOnly', False),
+            # ])),
             ('Reload', OrderedDict([
                 ('page', 'OpenNI2'),
                 ('name', 'Reload'),
