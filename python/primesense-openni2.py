@@ -177,12 +177,17 @@ class Devices:
     def __getitem__(self, item):
         return list(self._known_by_label.values()).__getitem__(item)
 
+    @property
+    def connected(self):
+        return {k: v for k, v in self._known_by_label.items() if not v.disconnected}
+
 
 def get_param_values(scriptOp):
-    result = dict()
+    param_keys = ['Dlldirectory', 'Active', 'Sensor', 'Image', 'Fps', 'Resolution', 'Pixelformat', 'Mirrorimage']
 
+    result = dict()
     if scriptOp.par['Sensor'] is not None:
-        for k in ['Dlldirectory', 'Active', 'Sensor', 'Image', 'Fps', 'Resolution', 'Pixelformat', 'Mirrorimage']:
+        for k in param_keys:
             result.update({k: scriptOp.par[k].val})
 
     return result
@@ -267,9 +272,12 @@ def populate_menus(p, param_values={}):
 
             # Pixelformat menu
             pixelformat_param = p['Device']['Pixelformat']
-            pixelformat_param['menuNames'] = list(device.video_modes[sensor_param_val][fps_param_val][resolution_param_val])
+            pixelformat_param['menuNames'] = list(
+                device.video_modes[sensor_param_val][fps_param_val][resolution_param_val]
+            )
             pixelformat_param['menuLabels'] = list(
-                device.video_modes[sensor_param_val][fps_param_val][resolution_param_val])
+                device.video_modes[sensor_param_val][fps_param_val][resolution_param_val]
+            )
 
             pixelformat_param_val = param_values['Pixelformat'] \
                 if param_values['Pixelformat'] in pixelformat_param['menuNames'] else pixelformat_param['menuNames'][0]
@@ -398,10 +406,12 @@ def update_parameters(scriptOp):
         set_param_values(scriptOp, param_values)
 
 
+# press 'Setup Parameters' in the OP to call this function to re-create the parameters.
 def onSetupParameters(scriptOp):
     setup_parameters(scriptOp)
 
 
+# called whenever custom pulse parameter is pushed
 def onPulse(par):
     scriptOp = par.owner
     if par.name == 'Reload':
@@ -436,6 +446,6 @@ if __name__ is not '__main__':
 # Executes in python console outside of TouchDesigner (for testing)
 if __name__ is '__main__':
     openni2.initialize(dll_directories='../Redist')
-    devs = Devices()
+    devices = Devices()
 
     parameter_update_required = False
