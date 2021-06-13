@@ -1,5 +1,8 @@
 # TouchDesigner Script TOP for Orbbec3D Astra
- Orbbec3D Astra python implementation for TouchDesigner Script Top
+Orbbec3D Astra python implementation for TouchDesigner Script Top.
+Work in progress. Still unstable. TouchDesigner might crash when switching parameters on active streams.
+
+Any help and feedback is welcome.
 
 ### Requirements:
 - Windows
