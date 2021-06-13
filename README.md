@@ -2,6 +2,7 @@
  Orbbec3D Astra python implementation for TouchDesigner Script Top
 
 ### Requirements:
+- Windows
 - TouchDesigner >= 2021.13610
 - Virtualenv
 - pip
@@ -15,4 +16,4 @@ Open orbec-astra.toe in TouchDesigner
 
 ### Update Orbbec OpenNI SDK
 - download Orbbec OpenNI SDK from orbbec3d from https://orbbec3d.com/develop/
-- replace Redist folder in this repo with the Windows/SDK/Redist folder from the zipfile 
+- replace Redist folder in this repo with the Windows/SDK/x64/Redist folder from the zipfile 

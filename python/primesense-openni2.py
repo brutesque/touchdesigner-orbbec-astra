@@ -178,23 +178,11 @@ class Devices:
         return list(self._known_by_label.values()).__getitem__(item)
 
 
-def onPulse(par):
-    scriptOp = par.owner
-    if par.name == 'Reload':
-        # openni2.initialize(dll_directories=scriptOp.par.Dlldirectory.val)
-        devices.refresh()
-
-        global parameter_update_required
-        parameter_update_required = True
-
-    return
-
-
 def get_param_values(scriptOp):
     result = dict()
 
     if scriptOp.par['Sensor'] is not None:
-        for k in ['Active', 'Sensor', 'Image', 'Fps', 'Resolution', 'Pixelformat', 'Mirrorimage']:
+        for k in ['Dlldirectory', 'Active', 'Sensor', 'Image', 'Fps', 'Resolution', 'Pixelformat', 'Mirrorimage']:
             result.update({k: scriptOp.par[k].val})
 
     return result
@@ -209,9 +197,6 @@ def set_param_values(scriptOp, param_values):
     last_params = param_values
 
 
-last_params = dict()
-
-
 def detect_param_change(scriptOp):
     global last_params
     changed = False
@@ -224,94 +209,96 @@ def detect_param_change(scriptOp):
     return changed
 
 
-def onCook(scriptOp):
-    global parameter_update_required
+def initialize_devices(scriptOp):
+    if scriptOp.par['Dlldirectory'] and \
+            scriptOp.par['Dlldirectory'].val and \
+            os.path.exists(scriptOp.par['Dlldirectory'].val):
+        openni2.initialize(dll_directories=scriptOp.par.Dlldirectory.val)
 
-    if detect_param_change(scriptOp):
-        # print('onCook: params changed')
-        parameter_update_required = True
+        global devices
+        if devices is None:
+            devices = Devices()
+        else:
+            devices.refresh()
 
-    if parameter_update_required:
-        # print('onCook: update required')
-        setup_parameters(scriptOp)
-        parameter_update_required = False
-
-    return
+        return True
+    return False
 
 
-def populate_menus(p, param_values):
-
+def populate_menus(p, param_values={}):
     # Device menu
     device_param = p['Device']['Sensor']
     device_param['menuNames'] = list()
     device_param['menuLabels'] = list()
-    for k, v in devices.known.items():
-        device_param['menuNames'].append(k)
-        device_param['menuLabels'].append('{}{}'.format(k, ' (Disconnected)' if v.disconnected else ''))
 
-    if 'Sensor' in param_values:
-        device_param_val = param_values['Sensor'] \
-            if param_values['Sensor'] in device_param['menuNames'] else device_param['menuNames'][0]
-        device = devices.known[device_param_val]
+    if devices is not None:
+        for k, v in devices.known.items():
+            device_param['menuNames'].append(k)
+            device_param['menuLabels'].append('{}{}'.format(k, ' (Disconnected)' if v.disconnected else ''))
 
-        # Sensor menu
-        sensor_param = p['Device']['Image']
-        sensor_param['menuNames'] = list(device.video_modes)
-        sensor_param['menuLabels'] = list(device.video_modes)
+        if 'Sensor' in param_values:
+            device_param_val = param_values['Sensor'] \
+                if param_values['Sensor'] in device_param['menuNames'] else device_param['menuNames'][0]
+            device = devices.known[device_param_val]
 
-        sensor_param_val = param_values['Image'] \
-            if param_values['Image'] in sensor_param['menuNames'] else sensor_param['menuNames'][0]
+            # Sensor menu
+            sensor_param = p['Device']['Image']
+            sensor_param['menuNames'] = list(device.video_modes)
+            sensor_param['menuLabels'] = list(device.video_modes)
 
-        # Fps menu
-        fps_param = p['Device']['Fps']
-        fps_param['menuNames'] = list(device.video_modes[sensor_param_val])
-        fps_param['menuLabels'] = list(device.video_modes[sensor_param_val])
+            sensor_param_val = param_values['Image'] \
+                if param_values['Image'] in sensor_param['menuNames'] else sensor_param['menuNames'][0]
 
-        fps_param_val = param_values['Fps'] \
-            if param_values['Fps'] in fps_param['menuNames'] else fps_param['menuNames'][0]
+            # Fps menu
+            fps_param = p['Device']['Fps']
+            fps_param['menuNames'] = list(device.video_modes[sensor_param_val])
+            fps_param['menuLabels'] = list(device.video_modes[sensor_param_val])
 
-        # Resolution menu
-        resolution_param = p['Device']['Resolution']
-        resolution_param['menuNames'] = list(device.video_modes[sensor_param_val][fps_param_val])
-        resolution_param['menuLabels'] = list(device.video_modes[sensor_param_val][fps_param_val])
+            fps_param_val = param_values['Fps'] \
+                if param_values['Fps'] in fps_param['menuNames'] else fps_param['menuNames'][0]
 
-        resolution_param_val = param_values['Resolution'] \
-            if param_values['Resolution'] in resolution_param['menuNames'] else resolution_param['menuNames'][0]
+            # Resolution menu
+            resolution_param = p['Device']['Resolution']
+            resolution_param['menuNames'] = list(device.video_modes[sensor_param_val][fps_param_val])
+            resolution_param['menuLabels'] = list(device.video_modes[sensor_param_val][fps_param_val])
 
-        # Pixelformat menu
-        pixelformat_param = p['Device']['Pixelformat']
-        pixelformat_param['menuNames'] = list(device.video_modes[sensor_param_val][fps_param_val][resolution_param_val])
-        pixelformat_param['menuLabels'] = list(
-            device.video_modes[sensor_param_val][fps_param_val][resolution_param_val])
+            resolution_param_val = param_values['Resolution'] \
+                if param_values['Resolution'] in resolution_param['menuNames'] else resolution_param['menuNames'][0]
 
-        pixelformat_param_val = param_values['Pixelformat'] \
-            if param_values['Pixelformat'] in pixelformat_param['menuNames'] else pixelformat_param['menuNames'][0]
+            # Pixelformat menu
+            pixelformat_param = p['Device']['Pixelformat']
+            pixelformat_param['menuNames'] = list(device.video_modes[sensor_param_val][fps_param_val][resolution_param_val])
+            pixelformat_param['menuLabels'] = list(
+                device.video_modes[sensor_param_val][fps_param_val][resolution_param_val])
 
-        param_values.update({
-            'Sensor': device_param_val,
-            'Image': sensor_param_val,
-            'Fps': fps_param_val,
-            'Resolution': resolution_param_val,
-            'Pixelformat': pixelformat_param_val,
-        })
+            pixelformat_param_val = param_values['Pixelformat'] \
+                if param_values['Pixelformat'] in pixelformat_param['menuNames'] else pixelformat_param['menuNames'][0]
+
+            param_values.update({
+                'Sensor': device_param_val,
+                'Image': sensor_param_val,
+                'Fps': fps_param_val,
+                'Resolution': resolution_param_val,
+                'Pixelformat': pixelformat_param_val,
+            })
 
     return p, param_values
 
 
 def par_data():
     return OrderedDict({
-        'OpenNI2': OrderedDict([
-            # ('Dlldirectory', OrderedDict([
-            #     ('page', 'OpenNI2'),
-            #     ('name', 'Dlldirectory'),
-            #     ('style', 'Folder'),
-            #     ('label', 'DLL Directory'),
-            #     ('default', 'Redist'),
-            #     ('startSection', False),
-            #     ('readOnly', False),
-            # ])),
+        'OpenNI': OrderedDict([
+            ('Dlldirectory', OrderedDict([
+                ('page', 'OpenNI'),
+                ('name', 'Dlldirectory'),
+                ('style', 'Folder'),
+                ('label', 'DLL Directory'),
+                ('default', 'Redist'),
+                ('startSection', False),
+                ('readOnly', False),
+            ])),
             ('Reload', OrderedDict([
-                ('page', 'OpenNI2'),
+                ('page', 'OpenNI'),
                 ('name', 'Reload'),
                 ('style', 'Pulse'),
                 ('label', 'Reload'),
@@ -395,6 +382,13 @@ def par_data():
 
 
 def setup_parameters(scriptOp):
+    TDJSON = op.TDModules.mod.TDJSON
+    parData = par_data()
+    parData, _ = populate_menus(parData)
+    TDJSON.addParametersFromJSONOp(scriptOp, parData, destroyOthers=True)
+
+
+def update_parameters(scriptOp):
     param_values = get_param_values(scriptOp)
     TDJSON = op.TDModules.mod.TDJSON
     parData = par_data()
@@ -404,20 +398,44 @@ def setup_parameters(scriptOp):
         set_param_values(scriptOp, param_values)
 
 
-if __name__ is not '__main__':
-    # Executes inside of TouchDesigner. __name__ will contain name of Text dat
-    openni2.initialize(dll_directories='Redist')
-
-    devices = Devices()
-    parameter_update_required = False
-
-if __name__ is '__main__':
-    # Executes in python console outside of TouchDesigner (for testing)
-    openni2.initialize(dll_directories='../Redist')
-
-    devs = Devices()
-    parameter_update_required = False
-
-
 def onSetupParameters(scriptOp):
     setup_parameters(scriptOp)
+
+
+def onPulse(par):
+    scriptOp = par.owner
+    if par.name == 'Reload':
+        if initialize_devices(scriptOp):
+            global parameter_update_required
+            parameter_update_required = True
+
+    return
+
+
+def onCook(scriptOp):
+    if devices is None:
+        initialize_devices(scriptOp)
+
+    # Update parameter when neccessary
+    global parameter_update_required
+    if detect_param_change(scriptOp):
+        parameter_update_required = True
+    if parameter_update_required:
+        update_parameters(scriptOp)
+        parameter_update_required = False
+
+    return
+
+
+# Executes inside of TouchDesigner. __name__ will contain name of Text dat
+if __name__ is not '__main__':
+    devices = None
+    parameter_update_required = False
+    last_params = dict()
+
+# Executes in python console outside of TouchDesigner (for testing)
+if __name__ is '__main__':
+    openni2.initialize(dll_directories='../Redist')
+    devs = Devices()
+
+    parameter_update_required = False
