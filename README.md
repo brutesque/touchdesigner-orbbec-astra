@@ -15,7 +15,7 @@ Orbbec3D Astra python implementation for TouchDesigner Script Top.
 Open orbec-astra.toe in TouchDesigner. The python scripts for the Script TOPs add the venv/ directory to their paths, so there should be no need to adjust your python path in the TouchDesigner preferencs. 
 
 ### Update Orbbec OpenNI SDK
-- download Orbbec OpenNI SDK from orbbec3d from https://orbbec3d.com/develop/
+- download Orbbec OpenNI SDK from orbbec3d from https://orbbec3d.com/index/download.html
 - replace Redist folder in this repo with the Windows/SDK/x64/Redist folder from the zipfile 
 
 
